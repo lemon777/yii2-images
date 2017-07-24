@@ -25,6 +25,8 @@ class Module extends \yii\base\Module
 
     public $imageCompressionQuality = 85;
 
+    public $urlSite = '';
+
 
     public function getImage($item, $dirtyAlias)
     {

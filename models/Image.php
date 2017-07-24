@@ -49,15 +49,63 @@ class Image extends \yii\db\ActiveRecord
         return $ext;
     }
 
-    public function getUrl($size = false){
-        $urlSize = ($size) ? '_'.$size : '';
-        $url = Url::toRoute([
-            '/'.$this->getModule()->id.'/images/image-by-item-and-alias',
-            'item' => $this->modelName.$this->itemId,
-            'dirtyAlias' =>  $this->urlAlias.$urlSize.'.'.$this->getExtension()
-        ]);
+    public function getUrl($size = false, $placeHolder = true)
+    {
+        $urlSize = ($size) ? '_' . $size : '';
+        if ($this->modelName == '') {
+            $modelName = 'placeHolder';
+        } else if (substr($this->modelName, -1) != 's') {
+            $modelName = $this->modelName . 's/';
+        } else {
+            $modelName = $this->modelName . '/';
+        }
+        $urlSite = $this->getModule()->urlSite;
+        $filePath = '/upload/images/cache/' . $modelName . $this->modelName . $this->itemId . '/' . $this->urlAlias . $urlSize . '.' . $this->getExtension();
+        $full_path = Yii::getAlias('@frontend/web') . $filePath;
+        if (is_file($full_path)) {
+            return $urlSite . $filePath;
+        } else {
+            $item = $this->modelName . $this->itemId;
+            $dirtyAlias = $this->urlAlias . $urlSize . '.' . $this->getExtension();
+            if ($this->createImage($item, $dirtyAlias)) {
+                return $urlSite . $filePath;
+            } else {
+                if ($placeHolder) {
+                    return $this->getModule()->getPlaceHolder()->getUrl($size);
+                } else {
+                    return '';
+                }
+            }
 
-        return $url;
+        }
+    }
+
+    public function createImage($item = '', $dirtyAlias)
+    {
+        $dotParts = explode('.', $dirtyAlias);
+        if (!isset($dotParts[1])) {
+            throw new \yii\web\HttpException(404, 'Image must have extension');
+        }
+        $dirtyAlias = $dotParts[0];
+
+        $size = isset(explode('_', $dirtyAlias)[1]) ? explode('_', $dirtyAlias)[1] : false;
+        $alias = isset(explode('_', $dirtyAlias)[0]) ? explode('_', $dirtyAlias)[0] : false;
+        $image = $this->getModule()->getImage($item, $alias);
+
+        if ($image->getExtension() != $dotParts[1]) {
+            throw new \yii\web\HttpException(404, 'Image not found (extension)');
+        }
+
+        if ($image) {
+            if (!is_file($image->getPathToOrigin())) {
+
+                return false;
+            }
+            $image->getContent($size);
+            return true;
+        } else {
+            throw new \yii\web\HttpException(404, 'There is no images');
+        }
     }
 
     public function getPath($size = false){
