@@ -18,12 +18,7 @@ class ImagesController extends Controller
     use ModuleTrait;
     public function actionIndex()
     {
-        echo "Hello, man. It's ok, dont worry.";
-    }
-
-    public function actionTestTest()
-    {
-        echo "Hello, man. It's ok, dont worry.";
+        return $this->goHome();
     }
 
 
@@ -35,8 +30,12 @@ class ImagesController extends Controller
      * @param $alias
      *
      */
-    public function actionImageByItemAndAlias($item='', $dirtyAlias)
+    public function actionImageByItemAndAlias($item='', $dirtyAlias = null)
     {
+        if (!$dirtyAlias){
+            throw new \yii\web\HttpException(404, 'There is no images');
+        }
+
         $dotParts = explode('.', $dirtyAlias);
         if(!isset($dotParts[1])){
             throw new \yii\web\HttpException(404, 'Image must have extension');
@@ -52,8 +51,7 @@ class ImagesController extends Controller
         }
 
         if($image){
-            header('Content-Type: ' . $image->getMimeType($size) );
-            echo $image->getContent($size);
+            $this->redirect($image->getUrl($size));
         }else{
             throw new \yii\web\HttpException(404, 'There is no images');
         }
